@@ -1,0 +1,2823 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>access-light · User Management</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #252833;
+      --border: #363a48;
+      --text: #e4e6ef;
+      --text-dim: #8b8fa3;
+      --accent: #6c72ff;
+      --accent-hover: #8186ff;
+      --danger: #ff5c6c;
+      --danger-hover: #ff7a87;
+      --success: #3dd68c;
+      --warn: #f5a623;
+      --purple: #c084fc;
+      --purple-bg: #2e2244;
+      --radius: 8px;
+      --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Top bar ─────────────────────────────────────── */
+    .top-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      row-gap: 10px;
+      padding: 10px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+
+    .top-bar h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+    }
+
+    .top-bar .subtitle {
+      color: var(--text-dim);
+      font-size: 0.76rem;
+      white-space: nowrap;
+    }
+
+    .top-bar .spacer {
+      flex: 1;
+    }
+
+    .top-bar-divider {
+      width: 1px;
+      height: 20px;
+      background: var(--border);
+      margin: 0 4px;
+      flex-shrink: 0;
+    }
+
+    .api-url-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .api-url-group input {
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      width: 220px;
+      padding: 6px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      outline: none;
+      height: 32px;
+      margin: 0;
+    }
+
+    .api-url-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: var(--text-dim);
+      transition: background 0.3s;
+    }
+
+    .dot.connected {
+      background: var(--success);
+    }
+
+    .top-bar-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      padding: 6px 12px;
+      font-size: 0.76rem;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, transform 0.1s;
+      font-family: var(--font);
+      background: var(--surface2);
+      color: var(--text-dim);
+      white-space: nowrap;
+      height: 32px;
+    }
+
+    .btn-icon:hover {
+      background: var(--border);
+      color: var(--text);
+      border-color: var(--text-dim);
+    }
+
+    .btn-icon:active {
+      transform: scale(0.97);
+    }
+
+    .btn-icon svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      fill: currentColor;
+    }
+
+    .logout-btn {
+      padding: 6px 14px;
+      font-size: 0.76rem;
+      height: 32px;
+      width: auto;
+    }
+
+    /* ── App layout ──────────────────────────────────── */
+    .app-shell {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .main-layout {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .main-layout.login-view .sidebar {
+      display: none;
+    }
+
+    .main-layout.login-view .content-area {
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+    }
+
+    /* ── Sidebar ─────────────────────────────────────── */
+    .sidebar {
+      width: 220px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    .sidebar-section {
+      padding: 12px 0;
+    }
+
+    .sidebar-section:not(:last-child) {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-section-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      padding: 0 16px;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 16px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: background 0.12s, color 0.12s;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-item:hover {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .sidebar-item.active {
+      background: var(--surface2);
+      color: var(--accent);
+      border-left-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .sidebar-item .item-icon {
+      font-size: 0.9rem;
+      opacity: 0.85;
+      width: 18px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    /* ── Content area ────────────────────────────────── */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .page-panel {
+      display: none;
+      flex-direction: column;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .page-panel.active {
+      display: flex;
+    }
+
+    .content-header {
+      padding: 16px 24px 12px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .content-header-text {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .content-header h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .content-header .page-desc {
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .content-header .badge {
+      font-size: 0.66rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .content-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: auto;
+      padding: 20px 24px 28px;
+    }
+
+    .content-body.narrow {
+      max-width: 440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .form-section-title {
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--accent);
+      margin: 8px 0 10px;
+      padding-bottom: 5px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .form-section-title:first-child {
+      margin-top: 0;
+    }
+
+    .form-row {
+      display: flex;
+      gap: 12px;
+    }
+
+    .form-row>* {
+      flex: 1;
+    }
+
+    .field-hint {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: -8px;
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+
+    .lc-secret-banner {
+      background: rgba(61, 214, 140, 0.12);
+      border: 1px solid var(--success);
+      border-radius: var(--radius);
+      padding: 12px;
+      margin-bottom: 12px;
+      font-size: 0.8rem;
+    }
+
+    .lc-secret-banner code {
+      display: block;
+      margin-top: 8px;
+      padding: 8px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.78rem;
+      word-break: break-all;
+      color: var(--success);
+    }
+
+    .lc-test-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .lc-test-box h3 {
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .lc-test-box input {
+      margin-bottom: 10px;
+    }
+
+    .lc-test-result {
+      margin-top: 12px;
+      padding: 12px;
+      border-radius: var(--radius);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .lc-test-result.success {
+      border: 1px solid var(--success);
+      background: rgba(61, 214, 140, 0.1);
+    }
+
+    .lc-test-result.failure {
+      border: 1px solid var(--danger);
+      background: rgba(255, 92, 108, 0.1);
+    }
+
+    .lc-test-result .lc-test-token {
+      display: block;
+      margin-top: 8px;
+      padding: 8px;
+      background: var(--surface2);
+      border-radius: var(--radius);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      word-break: break-all;
+      color: var(--text-dim);
+    }
+
+    /* ── Cards inside pages ──────────────────────────── */
+    h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px;
+      margin-bottom: 16px;
+    }
+
+    .page-panel .card {
+      max-width: 640px;
+    }
+
+    .card h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card h2 .badge {
+      font-size: 0.68rem;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 50px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-role {
+      background: rgba(108, 114, 255, 0.15);
+      color: var(--accent);
+    }
+
+    label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      font-size: 0.84rem;
+      font-family: var(--font);
+      outline: none;
+      transition: border-color 0.2s;
+      margin-bottom: 12px;
+    }
+
+    textarea {
+      font-family: var(--mono);
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+    }
+
+    .password-field {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    .password-field input {
+      margin-bottom: 0;
+      padding-right: 36px;
+    }
+
+    .password-field.has-generate input {
+      padding-right: 100px;
+    }
+
+    .password-field-btn {
+      position: absolute;
+      top: 1px;
+      bottom: 1px;
+      width: 32px;
+      border: none;
+      border-radius: calc(var(--radius) - 1px);
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .password-field-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .password-field-btn:active {
+      color: var(--accent);
+      background: rgba(108, 114, 255, 0.1);
+    }
+
+    .password-field-btn.copied {
+      color: var(--success);
+    }
+
+    .password-field-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: currentColor;
+      pointer-events: none;
+    }
+
+    .password-reveal-btn {
+      right: 1px;
+    }
+
+    .password-reveal-btn.revealing {
+      color: var(--accent);
+      background: rgba(108, 114, 255, 0.1);
+    }
+
+    .password-copy-btn {
+      right: 65px;
+    }
+
+    .password-generate-btn {
+      right: 33px;
+    }
+
+    .lc-test-box .password-field {
+      margin-bottom: 10px;
+    }
+
+    input::placeholder {
+      color: var(--text-dim);
+      opacity: 0.5;
+    }
+
+    select {
+      cursor: pointer;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.82rem;
+      font-weight: 500;
+      font-family: var(--font);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    .btn-block {
+      width: 100%;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 10px 24px;
+      border-radius: var(--radius);
+      font-size: 0.84rem;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s;
+      z-index: 9999;
+      pointer-events: none;
+      max-width: 420px;
+      word-break: break-word;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success {
+      background: #1a7a4e;
+      color: #fff;
+    }
+
+    .toast.error {
+      background: #a83240;
+      color: #fff;
+    }
+
+    .user-info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.84rem;
+    }
+
+    .user-info-row:last-child {
+      border-bottom: none;
+    }
+
+    .user-info-row .label-col {
+      color: var(--text-dim);
+    }
+
+    .user-info-row .value-col {
+      font-weight: 500;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .header-row h2 {
+      margin-bottom: 0;
+    }
+
+    .btn-sm {
+      padding: 5px 12px;
+      font-size: 0.76rem;
+      width: auto;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .separator {
+      height: 1px;
+      background: var(--border);
+      margin: 14px 0;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ── Attempts tables ─────────────────────────────── */
+    .attempts-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .attempts-controls select,
+    .attempts-controls input {
+      margin-bottom: 0;
+      flex: 1 1 100px;
+      min-width: 0;
+    }
+
+    .attempts-controls .btn {
+      flex: 0 0 auto;
+      width: auto;
+      padding: 8px 14px;
+    }
+
+    .attempts-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      margin-top: 8px;
+    }
+
+    .attempts-table th,
+    .attempts-table td {
+      text-align: left;
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    .attempts-table th {
+      color: var(--text-dim);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 2;
+    }
+
+    .content-body .attempts-table th {
+      background: var(--bg);
+    }
+
+    .attempts-table td {
+      color: var(--text);
+    }
+
+    .result-success {
+      color: var(--success);
+    }
+
+    .result-failure {
+      color: var(--danger);
+    }
+
+    .load-more-row td {
+      text-align: center;
+      padding: 12px 0;
+    }
+
+    .chip-user {
+      display: inline-block;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      padding: 3px 10px;
+      margin: 2px 3px;
+      font-size: 0.78rem;
+      color: var(--text);
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    .chip-user:hover,
+    .chip-user.active {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .checkbox-row input[type=checkbox] {
+      width: auto;
+      margin-bottom: 0;
+    }
+
+    /* ── Credential card styles ──────────────────────── */
+    .wallet-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      transition: border-color 0.2s;
+    }
+
+    .wallet-card:hover {
+      border-color: var(--accent);
+    }
+
+    .wallet-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .wallet-card-header .wallet-name {
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text);
+    }
+
+    .wallet-card-header .wallet-actions {
+      display: flex;
+      gap: 4px;
+    }
+
+    .wallet-field {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 3px 0;
+      font-size: 0.78rem;
+    }
+
+    .wallet-field .wf-label {
+      color: var(--text-dim);
+      min-width: 100px;
+    }
+
+    .wallet-field .wf-value {
+      color: var(--text);
+      text-align: right;
+      word-break: break-all;
+    }
+
+    .wallet-edit-form input,
+    .wallet-edit-form select {
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      padding: 6px 8px;
+    }
+
+    .wallet-edit-form label {
+      font-size: 0.7rem;
+      margin-bottom: 2px;
+    }
+
+    .wallet-search {
+      margin-bottom: 10px;
+    }
+
+    .wallet-search input {
+      margin-bottom: 0;
+      font-size: 0.8rem;
+      padding: 7px 10px;
+    }
+
+    .wallet-stats {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+    }
+
+    .wallet-stats strong {
+      color: var(--text);
+    }
+
+    /* ── Modals ──────────────────────────────────────── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 1001;
+      background: rgba(0, 0, 0, 0.62);
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-overlay.hidden {
+      display: none !important;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      width: 480px;
+      max-width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .modal-box.wide {
+      width: 600px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-header h3 {
+      flex: 1;
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 0;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: var(--radius);
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: var(--text);
+      background: var(--surface2);
+    }
+
+    .modal-body {
+      padding: 16px 20px;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .modal-body p {
+      font-size: 0.84rem;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    .modal-body .modal-subtext {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+
+    .modal-footer {
+      padding: 12px 20px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .modal-footer .btn {
+      width: auto;
+      min-width: 88px;
+    }
+
+    .confirm-modal-box {
+      width: 420px;
+    }
+
+    .confirm-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: rgba(255, 92, 108, 0.12);
+      color: var(--danger);
+    }
+
+    .confirm-icon.warn {
+      background: rgba(245, 166, 35, 0.12);
+      color: var(--warn);
+    }
+
+    .confirm-icon svg {
+      width: 20px;
+      height: 20px;
+      fill: currentColor;
+    }
+
+    .modal-content {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      min-width: 320px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    .priority-fields-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .priority-fields-row>div {
+      flex: 1;
+    }
+
+    .priority-fields-row input {
+      width: 100%;
+    }
+
+    /* ── Password reset modal ─────────────────────────── */
+    .pwd-reset-modal .modal-box {
+      width: 440px;
+    }
+
+    .pwd-reset-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .pwd-reset-icon {
+      flex-shrink: 0;
+      width: 44px;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      background: rgba(108, 114, 255, 0.15);
+      color: var(--accent);
+    }
+
+    .pwd-reset-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .pwd-reset-header-text h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      letter-spacing: -0.02em;
+    }
+
+    .pwd-reset-header-text p {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      line-height: 1.45;
+    }
+
+    .pwd-reset-header-text strong {
+      color: var(--text);
+    }
+
+    .pwd-reset-warning {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      border-radius: var(--radius);
+      background: rgba(255, 184, 77, 0.1);
+      border: 1px solid rgba(255, 184, 77, 0.35);
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #e8c87a;
+    }
+
+    .pwd-reset-warning svg {
+      flex-shrink: 0;
+      width: 16px;
+      height: 16px;
+      margin-top: 1px;
+      fill: currentColor;
+    }
+
+    .pwd-reset-field-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+      margin-bottom: 8px;
+    }
+
+    .pwd-reset-field {
+      display: flex;
+      align-items: stretch;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface2);
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .pwd-reset-field:focus-within {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(108, 114, 255, 0.15);
+    }
+
+    .pwd-reset-value {
+      flex: 1;
+      min-width: 0;
+      padding: 12px 14px;
+      font-family: var(--mono);
+      font-size: 0.88rem;
+      letter-spacing: 0.04em;
+      color: var(--success);
+      word-break: break-all;
+      line-height: 1.4;
+      user-select: all;
+    }
+
+    .pwd-reset-value.masked {
+      color: var(--text-dim);
+      letter-spacing: 0.18em;
+      font-size: 1rem;
+    }
+
+    .pwd-reset-field-actions {
+      display: flex;
+      border-left: 1px solid var(--border);
+    }
+
+    .pwd-reset-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .pwd-reset-icon-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+
+    .pwd-reset-icon-btn.revealing {
+      color: var(--accent);
+      background: rgba(108, 114, 255, 0.1);
+    }
+
+    .pwd-reset-icon-btn.copied {
+      color: var(--success);
+    }
+
+    .pwd-reset-icon-btn svg {
+      width: 18px;
+      height: 18px;
+      fill: currentColor;
+    }
+
+    .pwd-reset-footer {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+
+    .pwd-reset-footer .btn {
+      flex: 1;
+    }
+
+    .created-users-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .content-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 980px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .main-layout {
+        flex-direction: column;
+      }
+
+      .content-header,
+      .content-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="app-shell">
+
+    <!-- ============ TOP BAR ============ -->
+    <div class="top-bar">
+      <h1>🛡️ access-light</h1>
+      <span class="subtitle">User Management</span>
+      <span class="spacer"></span>
+      <div class="top-bar-actions">
+        <button class="btn-icon" onclick="openApiDocs()" title="Open interactive API documentation">
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M1 2.5A2.5 2.5 0 0 1 3.5 0h5.586a1.5 1.5 0 0 1 1.06.44l3.415 3.414A1.5 1.5 0 0 1 14 4.914V13.5a2.5 2.5 0 0 1-2.5 2.5h-8A2.5 2.5 0 0 1 1 13.5v-11zM3.5 1A1.5 1.5 0 0 0 2 2.5v11A1.5 1.5 0 0 0 3.5 15h8a1.5 1.5 0 0 0 1.5-1.5V5H9.5A1.5 1.5 0 0 1 8 3.5V1H3.5zM9 1.207V3.5a.5.5 0 0 0 .5.5h2.293L9 1.207zM4.5 12.5A.5.5 0 0 1 5 12h3a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 10h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5zm0-2A.5.5 0 0 1 5 8h6a.5.5 0 0 1 0 1H5a.5.5 0 0 1-.5-.5z" />
+          </svg>
+          API Docs
+        </button>
+        <button class="btn-icon" onclick="downloadOpenApiSpec()" title="Download OpenAPI specification (JSON)">
+          <svg viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+            <path
+              d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+          </svg>
+          OpenAPI
+        </button>
+      </div>
+      <div class="top-bar-divider"></div>
+      <div class="api-url-group">
+        <span class="dot" id="statusDot"></span>
+        <input type="text" id="apiBaseUrl" placeholder="API base URL" title="Base URL of the running service"
+          readonly />
+      </div>
+      <button class="btn btn-danger btn-sm logout-btn hidden" id="topLogoutBtn" onclick="handleLogout()">Logout</button>
+    </div>
+
+    <!-- ============ MAIN LAYOUT ============ -->
+    <div class="main-layout login-view" id="mainLayout">
+      <nav class="sidebar hidden" id="sidebarNav" aria-label="App navigation">
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Account</div>
+          <div class="sidebar-item active" data-page="dashboard" onclick="switchPage(this)">
+            <span class="item-icon">👤</span> Dashboard
+          </div>
+          <div class="sidebar-item" data-page="change-password" onclick="switchPage(this)">
+            <span class="item-icon">🔑</span> Change Password
+          </div>
+        </div>
+
+        <div class="sidebar-section hidden" id="sidebarSectionUsers" data-admin-only>
+          <div class="sidebar-section-label">Users</div>
+          <div class="sidebar-item" data-page="create-user" onclick="switchPage(this)">
+            <span class="item-icon">➕</span> Create User
+          </div>
+          <div class="sidebar-item" data-page="manage-users" onclick="switchPage(this)">
+            <span class="item-icon">📋</span> Manage Users
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Security</div>
+          <div class="sidebar-item" data-page="credentials" onclick="switchPage(this)">
+            <span class="item-icon">🎫</span> Login Credentials
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Audit</div>
+          <div class="sidebar-item" data-page="activity" onclick="switchPage(this)">
+            <span class="item-icon">📊</span> Activity Attempts
+          </div>
+          <div class="sidebar-item" data-page="login-attempts" onclick="switchPage(this)">
+            <span class="item-icon">🔐</span> Login Attempts
+          </div>
+        </div>
+      </nav>
+
+      <div class="content-area">
+
+        <!-- PAGE: Login -->
+        <div class="page-panel active" id="page-login">
+          <div class="content-body narrow">
+            <div id="loginSection" class="card">
+              <h2>Sign In</h2>
+              <label for="loginUsername">Username</label>
+              <input type="text" id="loginUsername" placeholder="e.g. root" autocomplete="username" />
+              <label for="loginPassword">Password</label>
+              <input type="password" id="loginPassword" placeholder="Your password" autocomplete="current-password" />
+              <button class="btn btn-primary btn-block" id="loginBtn" onclick="handleLogin()">Sign In</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Dashboard -->
+        <div class="page-panel" id="page-dashboard">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Dashboard <span class="badge badge-role" id="roleBadge"></span></h2>
+              <p class="page-desc">Your account profile.</p>
+            </div>
+          </div>
+          <div class="content-body">
+            <div id="dashboardSection" class="card">
+              <div id="userInfo">
+                <div class="user-info-row">
+                  <span class="label-col">User ID</span>
+                  <span class="value-col" id="infoId">—</span>
+                </div>
+                <div class="user-info-row">
+                  <span class="label-col">Username</span>
+                  <span class="value-col" id="infoUsername">—</span>
+                </div>
+                <div class="user-info-row">
+                  <span class="label-col">Email</span>
+                  <span class="value-col" id="infoEmail">—</span>
+                </div>
+                <div class="user-info-row">
+                  <span class="label-col">Role</span>
+                  <span class="value-col" id="infoRole">—</span>
+                </div>
+                <div class="user-info-row">
+                  <span class="label-col">Created</span>
+                  <span class="value-col" id="infoCreated">—</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Create User -->
+        <div class="page-panel" id="page-create-user">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Create User</h2>
+              <p class="page-desc">Register a new member or admin account.</p>
+            </div>
+          </div>
+          <div class="content-body">
+            <div id="createUserSection" class="card">
+              <label for="newUsername">Username</label>
+              <input type="text" id="newUsername" placeholder="new_user" autocomplete="off" />
+
+              <label for="newEmail">Email (optional)</label>
+              <input type="email" id="newEmail" placeholder="user@example.com" autocomplete="off" />
+
+              <label for="newPassword">Password</label>
+              <input type="password" id="newPassword" placeholder="Min 8 characters" autocomplete="new-password" data-generate-password />
+
+              <label for="newRole">Role</label>
+              <select id="newRole">
+                <option value="member">Member</option>
+                <option value="admin">Admin</option>
+              </select>
+
+              <label for="newAuditMode">Audit Mode</label>
+              <select id="newAuditMode">
+                <option value="standard">Standard (login attempts recorded)</option>
+                <option value="none">None (no audit logging)</option>
+              </select>
+
+              <button class="btn btn-primary btn-block" id="createUserBtn" onclick="handleCreateUser()">Create User</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Manage Users -->
+        <div class="page-panel" id="page-manage-users">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Manage Users</h2>
+              <p class="page-desc">Users you created — reset passwords.</p>
+            </div>
+          </div>
+          <div class="content-body">
+            <div id="createdUsersSection" class="card">
+              <div id="createdUsernamesList" style="font-size:0.82rem;color:var(--text-dim);">
+                No users created yet.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Login Credentials -->
+        <div class="page-panel" id="page-credentials">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Login Credentials <span class="badge badge-role" id="lcCountBadge">0</span></h2>
+              <p class="page-desc">App-generated secrets for signing in without your account password.</p>
+            </div>
+          </div>
+          <div class="content-body">
+            <div class="form-section-title">Test Credential Login</div>
+            <div class="lc-test-box">
+            <h3>Test credential login</h3>
+            <p style="font-size:0.78rem;color:var(--text-dim);margin-bottom:12px;">
+              Calls <code style="font-family:var(--mono);font-size:0.75rem;">POST /auth/login</code> with your username and the
+              credential secret. Does not change your current admin session.
+            </p>
+            <label for="lcTestUsername">Username</label>
+            <input type="text" id="lcTestUsername" placeholder="Your username" autocomplete="username" />
+
+            <label for="lcTestSecret">Credential secret</label>
+            <input type="password" id="lcTestSecret" placeholder="Paste the generated secret" autocomplete="off" />
+
+            <button class="btn btn-primary" id="lcTestLoginBtn" onclick="handleTestLoginCredential()">Test login &amp;
+              obtain JWT</button>
+
+            <div id="lcTestResult" class="lc-test-result hidden"></div>
+            </div>
+
+            <div class="form-section-title">Create Credential</div>
+            <div class="card" id="createLoginCredentialSection">
+              <span class="field-hint">The secret is shown only once when created.</span>
+              <label for="lcName">Name *</label>
+              <input type="text" id="lcName" placeholder="e.g. mobile-app" autocomplete="off" />
+              <label for="lcDescription">Description</label>
+              <input type="text" id="lcDescription" placeholder="Optional description" autocomplete="off" />
+              <button class="btn btn-primary btn-block" id="createLcBtn" onclick="handleCreateLoginCredential()">Create Credential</button>
+            </div>
+
+            <div class="form-section-title">Your Credentials</div>
+            <div class="wallet-search">
+              <input type="text" id="lcSearchInput" placeholder="Search credentials…" oninput="filterLoginCredentialCards()" />
+            </div>
+            <div id="lcCardsList"></div>
+          </div>
+        </div>
+
+        <!-- PAGE: Change Password -->
+        <div class="page-panel" id="page-change-password">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Change Password</h2>
+              <p class="page-desc">Update your account password. Minimum 8 characters.</p>
+            </div>
+          </div>
+          <div class="content-body">
+            <div class="card">
+              <label for="oldPassword">Current Password</label>
+              <input type="password" id="oldPassword" placeholder="Current password" autocomplete="current-password" />
+              <label for="newPwd">New Password</label>
+              <input type="password" id="newPwd" placeholder="Min 8 characters" autocomplete="new-password" data-generate-password />
+              <button class="btn btn-secondary btn-block" id="changePwdBtn" onclick="handleChangePassword()">Change Password</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Activity Attempts -->
+        <div class="page-panel" id="page-activity">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Activity Attempts</h2>
+              <p class="page-desc">API activity audit log for authenticated operations.</p>
+            </div>
+          </div>
+          <div class="content-body">
+
+          <!-- User filter chips (admin/superadmin only) -->
+          <div id="activityUserChips" class="hidden" style="margin-bottom:10px;">
+            <label style="margin-bottom:6px;">Filter by user</label>
+            <div id="activityChipsList"></div>
+          </div>
+
+          <!-- Endpoint filter -->
+          <div class="attempts-controls">
+            <select id="activityEndpointFilter" onchange="reloadActivity()">
+              <option value="">All endpoints</option>
+              <option value="POST /access-light/v1/users">POST /users (create)</option>
+              <option value="POST /access-light/v1/auth/logout">POST /auth/logout</option>
+              <option value="POST /access-light/v1/auth/verify">POST /auth/verify</option>
+              <option value="GET /access-light/v1/users/me">GET /users/me</option>
+              <option value="POST /access-light/v1/users/me/password">POST /users/me/password</option>
+              <option value="POST /access-light/v1/users/{username}/password-reset">POST /users/{username}/password-reset</option>
+              <option value="POST /access-light/v1/users/me/login-credentials">POST /users/me/login-credentials</option>
+              <option value="GET /access-light/v1/users/me/login-credentials">GET /users/me/login-credentials</option>
+              <option value="PATCH /access-light/v1/users/me/login-credentials">PATCH /users/me/login-credentials</option>
+              <option value="DELETE /access-light/v1/users/me/login-credentials">DELETE /users/me/login-credentials</option>
+            </select>
+            <select id="activityResultFilter" onchange="reloadActivity()">
+              <option value="">All results</option>
+              <option value="success">Success</option>
+              <option value="failure">Failure</option>
+            </select>
+          </div>
+
+          <div id="activityTableWrap">
+            <table class="attempts-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Endpoint</th>
+                  <th>Result</th>
+                  <th>Reason</th>
+                  <th>Target</th>
+                  <th>IP</th>
+                  <th>Origin</th>
+                </tr>
+              </thead>
+              <tbody id="activityTbody"></tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:10px;text-align:center;">
+            <button class="btn btn-secondary btn-sm hidden" id="loadMoreActivityBtn" onclick="loadMoreActivity()">Load more</button>
+          </div>
+          </div>
+        </div>
+
+        <!-- PAGE: Login Attempts -->
+        <div class="page-panel" id="page-login-attempts">
+          <div class="content-header">
+            <div class="content-header-text">
+              <h2>Login Attempts</h2>
+              <p class="page-desc">Authentication attempts including successes and failures.</p>
+            </div>
+          </div>
+          <div class="content-body">
+
+          <!-- User filter chips (admin/superadmin only) -->
+          <div id="attemptUserChips" class="hidden" style="margin-bottom:10px;">
+            <label style="margin-bottom:6px;">Filter by user</label>
+            <div id="attemptChipsList"></div>
+          </div>
+
+          <!-- Include user-not-found checkbox (admin/superadmin only) -->
+          <div id="unfCheckboxRow" class="checkbox-row hidden">
+            <input type="checkbox" id="includeUnfCheckbox" onchange="reloadAttempts()" />
+            <span>Include "user not found" attempts</span>
+          </div>
+
+          <div id="attemptsTableWrap">
+            <table class="attempts-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>User</th>
+                  <th>Result</th>
+                  <th>Reason</th>
+                  <th>IP</th>
+                  <th>Origin</th>
+                </tr>
+              </thead>
+              <tbody id="attemptsTbody"></tbody>
+            </table>
+          </div>
+
+          <div style="margin-top:10px;text-align:center;">
+            <button class="btn btn-secondary btn-sm hidden" id="loadMoreAttemptsBtn" onclick="loadMoreAttempts()">Load more</button>
+          </div>
+          </div>
+        </div>
+
+      </div><!-- /content-area -->
+    </div><!-- /main-layout -->
+  </div><!-- /app-shell -->
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <!-- Confirm Dialog -->
+  <div class="modal-overlay" id="confirmModal" onclick="if(event.target===this)closeConfirmDialog(false)">
+    <div class="modal-box confirm-modal-box">
+      <div class="modal-header">
+        <div class="confirm-icon" id="confirmIcon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        </div>
+        <h3 id="confirmTitle">Confirm action</h3>
+        <button class="modal-close" type="button" onclick="closeConfirmDialog(false)" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage"></p>
+        <p class="modal-subtext" id="confirmDetail"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" onclick="closeConfirmDialog(false)">Cancel</button>
+        <button class="btn btn-danger" type="button" id="confirmActionBtn" onclick="closeConfirmDialog(true)">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Login Credential Secret Dialog -->
+  <div class="modal-overlay" id="lcSecretModal" onclick="if(event.target===this)closeLcSecretDialog()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Credential Secret</h3>
+        <button class="modal-close" type="button" onclick="closeLcSecretDialog()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="lc-secret-banner">
+          Copy this secret now. It will not be shown again.
+          <code id="lcSecretValue"></code>
+        </div>
+        <p class="modal-subtext">Credential: <strong id="lcSecretNameLabel"></strong></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" onclick="prefillLcTestFromModal()">Test this secret</button>
+        <button class="btn btn-primary" type="button" onclick="closeLcSecretDialog()">I have saved the secret</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Reset Dialog -->
+  <div class="modal-overlay pwd-reset-modal" id="passwordResetModal" onclick="if(event.target===this)closePasswordResetDialog()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3>Password Reset</h3>
+        <button class="modal-close" type="button" onclick="closePasswordResetDialog()" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body">
+      <p>New password for <strong id="pwdResetUsernameLabel"></strong></p>
+      <div class="pwd-reset-warning">
+        <svg viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+        <span>This password is shown only once. Copy it now and share it securely with the member.</span>
+      </div>
+      <div class="pwd-reset-field-label">New password</div>
+      <div class="pwd-reset-field">
+        <div class="pwd-reset-value masked" id="pwdResetValue" aria-live="polite">••••••••••••••••</div>
+        <div class="pwd-reset-field-actions">
+          <button type="button" class="pwd-reset-icon-btn" id="pwdResetToggleBtn" title="Hold to show password" aria-label="Hold to show password">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+          </button>
+          <button type="button" class="pwd-reset-icon-btn" id="pwdResetCopyBtn" onclick="copyPasswordResetValue()" title="Copy password" aria-label="Copy password">
+            <svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          </button>
+        </div>
+      </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="closePasswordResetDialog()">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ──────────────────── Helpers ────────────────────
+
+    const COOKIE_NAME = 'access_light_jwt';
+
+    function getBaseUrl() {
+      return document.getElementById('apiBaseUrl').value.replace(/\/+$/, '');
+    }
+
+    // Auto-detect base URL from the serving host
+    (function initBaseUrl() {
+      const input = document.getElementById('apiBaseUrl');
+      input.value = window.location.origin;
+    })();
+
+    function openApiDocs() {
+      window.open(`${getBaseUrl()}/access-light/docs`, '_blank', 'noopener');
+    }
+
+    function downloadOpenApiSpec() {
+      const url = `${getBaseUrl()}/access-light/openapi.json`;
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'openapi.json';
+      a.rel = 'noopener';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+
+    function setCookie(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + days * 86400000);
+      document.cookie = `${name}=${encodeURIComponent(value)};expires=${d.toUTCString()};path=/;SameSite=Lax`;
+    }
+
+    function getCookie(name) {
+      const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+      return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    function deleteCookie(name) {
+      document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Lax`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    const PASSWORD_EYE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>';
+
+    const PASSWORD_GENERATE_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/><circle cx="7.5" cy="7.5" r="1.5"/><circle cx="16.5" cy="7.5" r="1.5"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/><circle cx="12" cy="12" r="1.5"/></svg>';
+
+    const PASSWORD_COPY_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>';
+
+    function generateSecurePassword() {
+      const bytes = new Uint8Array(16);
+      crypto.getRandomValues(bytes);
+      let binary = '';
+      bytes.forEach(b => { binary += String.fromCharCode(b); });
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function fillGeneratedPassword(input) {
+      input.value = generateSecurePassword();
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      showToast('Password generated');
+    }
+
+    async function copyInputPassword(input, btn) {
+      const value = input.value;
+      if (!value) return showToast('Nothing to copy', 'error');
+
+      try {
+        await navigator.clipboard.writeText(value);
+        btn.classList.add('copied');
+        btn.title = 'Copied!';
+        btn.setAttribute('aria-label', 'Copied!');
+        showToast('Password copied to clipboard');
+        clearTimeout(btn._copyTimer);
+        btn._copyTimer = setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.title = 'Copy password';
+          btn.setAttribute('aria-label', 'Copy password');
+        }, 2000);
+      } catch {
+        showToast('Could not copy — select and copy manually', 'error');
+      }
+    }
+
+    function bindPressToReveal(btn, show, hide) {
+      const onShow = e => {
+        e.preventDefault();
+        show();
+        btn.classList.add('revealing');
+      };
+      const onHide = () => {
+        hide();
+        btn.classList.remove('revealing');
+      };
+      btn.addEventListener('mousedown', onShow);
+      btn.addEventListener('mouseup', onHide);
+      btn.addEventListener('mouseleave', onHide);
+      btn.addEventListener('touchstart', onShow, { passive: false });
+      btn.addEventListener('touchend', onHide);
+      btn.addEventListener('touchcancel', onHide);
+    }
+
+    function initPasswordRevealFields() {
+      document.querySelectorAll('input[type="password"]').forEach(input => {
+        if (input.closest('.password-field')) return;
+
+        const wrap = document.createElement('div');
+        wrap.className = 'password-field';
+        if (input.hasAttribute('data-generate-password')) {
+          wrap.classList.add('has-generate');
+        }
+        input.parentNode.insertBefore(wrap, input);
+        wrap.appendChild(input);
+
+        if (input.hasAttribute('data-generate-password')) {
+          const copyBtn = document.createElement('button');
+          copyBtn.type = 'button';
+          copyBtn.className = 'password-field-btn password-copy-btn';
+          copyBtn.title = 'Copy password';
+          copyBtn.setAttribute('aria-label', 'Copy password');
+          copyBtn.innerHTML = PASSWORD_COPY_SVG;
+          copyBtn.addEventListener('click', () => copyInputPassword(input, copyBtn));
+          wrap.appendChild(copyBtn);
+
+          const genBtn = document.createElement('button');
+          genBtn.type = 'button';
+          genBtn.className = 'password-field-btn password-generate-btn';
+          genBtn.title = 'Generate password';
+          genBtn.setAttribute('aria-label', 'Generate password');
+          genBtn.innerHTML = PASSWORD_GENERATE_SVG;
+          genBtn.addEventListener('click', () => fillGeneratedPassword(input));
+          wrap.appendChild(genBtn);
+        }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'password-field-btn password-reveal-btn';
+        btn.title = 'Hold to show password';
+        btn.setAttribute('aria-label', 'Hold to show password');
+        btn.innerHTML = PASSWORD_EYE_SVG;
+
+        bindPressToReveal(
+          btn,
+          () => { input.type = 'text'; },
+          () => { input.type = 'password'; },
+        );
+
+        wrap.appendChild(btn);
+      });
+    }
+
+    function showToast(message, type = 'success') {
+      const t = document.getElementById('toast');
+      t.textContent = message;
+      t.className = `toast ${type} show`;
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    let _confirmResolve = null;
+
+    function showConfirmDialog({ title, message, detail, confirmLabel = 'Confirm', danger = true, warn = false }) {
+      return new Promise(resolve => {
+        _confirmResolve = resolve;
+        document.getElementById('confirmTitle').textContent = title;
+        document.getElementById('confirmMessage').textContent = message;
+        const detailEl = document.getElementById('confirmDetail');
+        if (detail) {
+          detailEl.textContent = detail;
+          detailEl.style.display = '';
+        } else {
+          detailEl.textContent = '';
+          detailEl.style.display = 'none';
+        }
+        const icon = document.getElementById('confirmIcon');
+        icon.classList.toggle('warn', !!warn && !danger);
+        const btn = document.getElementById('confirmActionBtn');
+        btn.textContent = confirmLabel;
+        btn.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+        document.getElementById('confirmModal').classList.add('open');
+      });
+    }
+
+    function closeConfirmDialog(result) {
+      document.getElementById('confirmModal').classList.remove('open');
+      if (_confirmResolve) {
+        _confirmResolve(!!result);
+        _confirmResolve = null;
+      }
+    }
+
+    function openModal(id) {
+      document.getElementById(id).classList.add('open');
+    }
+
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('open');
+    }
+
+    const ACTIVE_PAGE_KEY = 'al_active_page';
+
+    function switchPage(el) {
+      if (!el || el.classList.contains('hidden')) return;
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      const pg = el.dataset.page;
+      const page = document.getElementById('page-' + pg);
+      if (page) page.classList.add('active');
+      try { localStorage.setItem(ACTIVE_PAGE_KEY, pg); } catch (e) { }
+    }
+
+    function setLoading(btnId, loading) {
+      const btn = document.getElementById(btnId);
+      if (loading) {
+        btn.disabled = true;
+        btn._origHTML = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner"></span> Working…';
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = btn._origHTML || btn.innerHTML;
+      }
+    }
+
+    async function api(path, { method = 'GET', body, token } = {}) {
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch(`${getBaseUrl()}${path}`, {
+        method,
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+
+      if (res.status === 204) return null;
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        const msg = data?.message || data?.detail?.message || data?.detail || `HTTP ${res.status}`;
+        const code = data?.code || data?.detail?.code || '';
+        const err = new Error(msg);
+        err.code = code;
+        throw err;
+      }
+
+      return data;
+    }
+
+    // Parse JWT payload without a library
+    function parseJwt(token) {
+      try {
+        const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+        return JSON.parse(atob(base64));
+      } catch { return null; }
+    }
+
+    // ──────────────────── UI State ────────────────────
+
+    function showLogin() {
+      document.getElementById('statusDot').classList.remove('connected');
+      document.getElementById('topLogoutBtn').classList.add('hidden');
+      document.getElementById('sidebarNav').classList.add('hidden');
+      document.getElementById('mainLayout').classList.add('login-view');
+      document.querySelectorAll('.sidebar-item').forEach(i => i.classList.remove('active'));
+      document.querySelectorAll('.page-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('page-login').classList.add('active');
+    }
+
+    function showDashboard(user) {
+      window._currentUser = user;
+      document.getElementById('statusDot').classList.add('connected');
+      document.getElementById('topLogoutBtn').classList.remove('hidden');
+      document.getElementById('sidebarNav').classList.remove('hidden');
+      document.getElementById('mainLayout').classList.remove('login-view');
+
+      // Populate info
+      document.getElementById('infoId').textContent = user.id;
+      document.getElementById('infoUsername').textContent = user.username;
+      const lcTestUser = document.getElementById('lcTestUsername');
+      if (lcTestUser) lcTestUser.value = user.username;
+      document.getElementById('infoEmail').textContent = user.email || '—';
+      document.getElementById('infoRole').textContent = user.role;
+      document.getElementById('infoCreated').textContent = user.createdAt
+        ? new Date(user.createdAt).toLocaleString()
+        : '—';
+
+      const canCreate = user.role === 'admin' || user.role === 'superadmin';
+
+      document.getElementById('sidebarSectionUsers').classList.toggle('hidden', !canCreate);
+
+      const createdList = document.getElementById('createdUsernamesList');
+      if (canCreate && Array.isArray(user.createdUsers) && user.createdUsers.length > 0) {
+        createdList.innerHTML = '';
+        const table = document.createElement('table');
+        table.className = 'attempts-table';
+        table.style.marginTop = '8px';
+        table.innerHTML = `
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Role</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+    `;
+        const tbody = document.createElement('tbody');
+        for (const cu of user.createdUsers) {
+          const tr = document.createElement('tr');
+          const uname = cu.user.username;
+          const urole = cu.user.role;
+          const isMemberUser = urole === 'member';
+          tr.innerHTML = `
+        <td>${escapeHtml(uname)}</td>
+        <td>${escapeHtml(urole)}</td>
+        <td>
+          <div class="created-users-actions">
+          ${isMemberUser ? `<button class="btn btn-secondary btn-sm" onclick="handleResetMemberPassword('${escapeHtml(uname)}')">Reset Password</button>` : '<span style="color:var(--text-dim);font-size:0.78rem;">N/A</span>'}
+          </div>
+        </td>
+      `;
+          tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        createdList.appendChild(table);
+
+        window._createdUsers = user.createdUsers;
+      } else if (canCreate) {
+        createdList.innerHTML = '<span style="color:var(--text-dim);font-size:0.82rem;">No users created yet.</span>';
+        window._createdUsers = [];
+      } else {
+        window._createdUsers = [];
+      }
+
+      let savedPage = null;
+      try { savedPage = localStorage.getItem(ACTIVE_PAGE_KEY); } catch (e) { }
+      const target = savedPage
+        ? document.querySelector(`.sidebar-item[data-page="${savedPage}"]:not(.hidden)`)
+        : null;
+      switchPage(target || document.querySelector('.sidebar-item[data-page="dashboard"]'));
+    }
+
+    // ──────────────────── Actions ────────────────────
+
+    async function handleLogin() {
+      const username = document.getElementById('loginUsername').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!username || !password) return showToast('Please fill in both fields', 'error');
+
+      setLoading('loginBtn', true);
+      try {
+        const data = await api('/access-light/v1/auth/login?origin=admin%20UI', {
+          method: 'POST',
+          body: { username, password },
+        });
+
+        // Store JWT in cookie (30 days matches token expiry)
+        setCookie(COOKIE_NAME, data.accessToken, 30);
+        showToast(`Welcome, ${username}!`);
+
+        // Fetch user profile and switch to dashboard
+        await loadDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading('loginBtn', false);
+      }
+    }
+
+    async function loadDashboard() {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showLogin();
+
+      try {
+        const user = await api('/access-light/v1/users/me?origin=admin%20UI', { token });
+        showDashboard(user);
+        // Extract usernames from createdUsers for chips
+        const createdUsernames = (user.createdUsers || []).map(cu => cu.user.username);
+        setupAttemptChips(user.role, createdUsernames);
+        setupActivityChips(user.role, createdUsernames);
+        reloadAttempts();
+        reloadActivity();
+        await loadLoginCredentials();
+      } catch {
+        // Token expired or invalid
+        deleteCookie(COOKIE_NAME);
+        showLogin();
+      }
+    }
+
+    function handleLogout() {
+      const token = getCookie(COOKIE_NAME);
+
+      // Best-effort server-side revocation; proceed to local cleanup regardless.
+      if (token) {
+        api('/access-light/v1/auth/logout?origin=admin%20UI', { method: 'POST', token }).catch(() => { });
+      }
+
+      deleteCookie(COOKIE_NAME);
+      showToast('Logged out');
+      showLogin();
+
+      // Clear form fields
+      document.getElementById('loginUsername').value = '';
+      document.getElementById('loginPassword').value = '';
+    }
+
+    async function handleCreateUser() {
+      const username = document.getElementById('newUsername').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const email = document.getElementById('newEmail').value.trim() || undefined;
+      const role = document.getElementById('newRole').value;
+      const auditMode = document.getElementById('newAuditMode').value;
+
+      if (!username || !password) return showToast('Username and password are required', 'error');
+      if (password.length < 8) return showToast('Password must be at least 8 characters', 'error');
+
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      setLoading('createUserBtn', true);
+      try {
+        const user = await api('/access-light/v1/users?origin=admin%20UI', {
+          method: 'POST',
+          body: { username, password, email, role, auditMode },
+          token,
+        });
+
+        showToast(`User "${user.username}" created as ${user.role}`);
+
+        // Clear form
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newEmail').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newRole').value = 'member';
+        document.getElementById('newAuditMode').value = 'standard';
+
+        // Refresh dashboard to update createdUsernames list
+        await loadDashboard();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading('createUserBtn', false);
+      }
+    }
+
+    async function handleChangePassword() {
+      const oldPassword = document.getElementById('oldPassword').value;
+      const newPassword = document.getElementById('newPwd').value;
+
+      if (!oldPassword || !newPassword) return showToast('Both password fields are required', 'error');
+      if (newPassword.length < 8) return showToast('New password must be at least 8 characters', 'error');
+
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      setLoading('changePwdBtn', true);
+      try {
+        await api('/access-light/v1/users/me/password?origin=admin%20UI', {
+          method: 'POST',
+          body: { oldPassword, newPassword },
+          token,
+        });
+
+        showToast('Password changed successfully');
+        document.getElementById('oldPassword').value = '';
+        document.getElementById('newPwd').value = '';
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading('changePwdBtn', false);
+      }
+    }
+
+    // Enter-key support
+    document.getElementById('loginPassword').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleLogin();
+    });
+    document.getElementById('newPassword').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleCreateUser();
+    });
+    document.getElementById('newPwd').addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleChangePassword();
+    });
+
+    // ──────────────────── Login Attempts ────────────────────
+
+    let _attemptsCursor = null;
+    let _attemptsUsername = null;   // null = own / all scoped
+    let _attemptsUserRole = null;
+    let _attemptsCreatedUsernames = [];
+
+    function reloadAttempts() {
+      _attemptsCursor = null;
+      document.getElementById('attemptsTbody').innerHTML = '';
+      loadAttempts();
+    }
+
+    async function loadAttempts() {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      params.set('limit', '50');
+      if (_attemptsCursor) params.set('cursor', _attemptsCursor);
+      if (_attemptsUsername) params.set('username', _attemptsUsername);
+
+      const includeUnf = document.getElementById('includeUnfCheckbox');
+      if (includeUnf && includeUnf.checked) {
+        params.set('includeUserNotFound', 'true');
+      }
+
+      try {
+        const data = await api(`/access-light/v1/auth/login-attempts?${params.toString()}`, { token });
+        renderAttemptRows(data.items);
+        _attemptsCursor = data.nextCursor;
+        document.getElementById('loadMoreAttemptsBtn').classList.toggle('hidden', !data.nextCursor);
+      } catch (err) {
+        // Handle audit_not_available (403) – show inline message instead of toast
+        if (err.code === 'audit_not_available' || (err.message && err.message.includes('not available'))) {
+          const tbody = document.getElementById('attemptsTbody');
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-dim);padding:18px 0;">⛔ Login audit data is not available for this user.</td></tr>';
+          document.getElementById('loadMoreAttemptsBtn').classList.add('hidden');
+        } else {
+          showToast(err.message, 'error');
+        }
+      }
+    }
+
+    function loadMoreAttempts() {
+      if (_attemptsCursor) loadAttempts();
+    }
+
+    function renderAttemptRows(items) {
+      const tbody = document.getElementById('attemptsTbody');
+      for (const it of items) {
+        const tr = document.createElement('tr');
+        const ts = new Date(it.timestamp);
+        const timeStr = ts.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+        const resultCls = it.result === 'success' ? 'result-success' : 'result-failure';
+        tr.innerHTML = `
+      <td>${escapeHtml(timeStr)}</td>
+      <td>${escapeHtml(it.username)}</td>
+      <td class="${resultCls}">${escapeHtml(it.result)}</td>
+      <td>${it.failureReason ? escapeHtml(it.failureReason) : '—'}</td>
+      <td>${escapeHtml(it.ipAddress)}</td>
+      <td>${it.origin ? escapeHtml(it.origin) : '—'}</td>
+    `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function setupAttemptChips(role, createdUsernames) {
+      _attemptsUserRole = role;
+      _attemptsCreatedUsernames = createdUsernames || [];
+
+      const isPriv = role === 'admin' || role === 'superadmin';
+      const chipsSection = document.getElementById('attemptUserChips');
+      const unfRow = document.getElementById('unfCheckboxRow');
+
+      chipsSection.classList.toggle('hidden', !isPriv);
+      unfRow.classList.toggle('hidden', !isPriv);
+
+      if (!isPriv) return;
+
+      const container = document.getElementById('attemptChipsList');
+      container.innerHTML = '';
+
+      // "My attempts" chip
+      const myChip = document.createElement('span');
+      myChip.className = 'chip-user active';
+      myChip.textContent = 'My attempts';
+      myChip.dataset.username = '';
+      myChip.onclick = () => selectAttemptChip(myChip, null);
+      container.appendChild(myChip);
+
+      // Chip per created user
+      for (const u of _attemptsCreatedUsernames) {
+        const chip = document.createElement('span');
+        chip.className = 'chip-user';
+        chip.textContent = u;
+        chip.dataset.username = u;
+        chip.onclick = () => selectAttemptChip(chip, u);
+        container.appendChild(chip);
+      }
+    }
+
+    function selectAttemptChip(chipEl, username) {
+      // Toggle active state
+      document.querySelectorAll('#attemptChipsList .chip-user').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+      _attemptsUsername = username;
+      reloadAttempts();
+    }
+
+    // ──────────────────── Activity Attempts ────────────────────
+
+    let _activityCursor = null;
+    let _activityUsername = null;
+    let _activityUserRole = null;
+    let _activityCreatedUsernames = [];
+
+    function reloadActivity() {
+      _activityCursor = null;
+      document.getElementById('activityTbody').innerHTML = '';
+      loadActivity();
+    }
+
+    async function loadActivity() {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return;
+
+      const params = new URLSearchParams();
+      params.set('limit', '50');
+      if (_activityCursor) params.set('cursor', _activityCursor);
+      if (_activityUsername) params.set('username', _activityUsername);
+
+      const endpointFilter = document.getElementById('activityEndpointFilter').value;
+      if (endpointFilter) params.set('endpoint', endpointFilter);
+
+      const resultFilter = document.getElementById('activityResultFilter').value;
+      if (resultFilter) params.set('result', resultFilter);
+
+      try {
+        const data = await api(`/access-light/v1/auth/activity-attempts?${params.toString()}`, { token });
+        renderActivityRows(data.items);
+        _activityCursor = data.nextCursor;
+        document.getElementById('loadMoreActivityBtn').classList.toggle('hidden', !data.nextCursor);
+      } catch (err) {
+        if (err.code === 'audit_not_available' || (err.message && err.message.includes('not available'))) {
+          const tbody = document.getElementById('activityTbody');
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-dim);padding:18px 0;">⛔ Activity audit data is not available for this user.</td></tr>';
+          document.getElementById('loadMoreActivityBtn').classList.add('hidden');
+        } else {
+          showToast(err.message, 'error');
+        }
+      }
+    }
+
+    function loadMoreActivity() {
+      if (_activityCursor) loadActivity();
+    }
+
+    function renderActivityRows(items) {
+      const tbody = document.getElementById('activityTbody');
+      for (const it of items) {
+        const tr = document.createElement('tr');
+        const ts = new Date(it.timestamp);
+        const timeStr = ts.toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' });
+        const resultCls = it.result === 'success' ? 'result-success' : 'result-failure';
+        // Shorten endpoint display: strip the base path
+        const shortEndpoint = it.endpoint.replace('/access-light/v1', '');
+        tr.innerHTML = `
+      <td>${escapeHtml(timeStr)}</td>
+      <td>${it.username ? escapeHtml(it.username) : '—'}</td>
+      <td>${escapeHtml(shortEndpoint)}</td>
+      <td class="${resultCls}">${escapeHtml(it.result)}</td>
+      <td>${it.failureReason ? escapeHtml(it.failureReason) : '—'}</td>
+      <td>${it.targetUsername ? escapeHtml(it.targetUsername) : '—'}</td>
+      <td>${escapeHtml(it.ipAddress)}</td>
+      <td>${it.origin ? escapeHtml(it.origin) : '—'}</td>
+    `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    function setupActivityChips(role, createdUsernames) {
+      _activityUserRole = role;
+      _activityCreatedUsernames = createdUsernames || [];
+
+      const isPriv = role === 'admin' || role === 'superadmin';
+      const chipsSection = document.getElementById('activityUserChips');
+
+      chipsSection.classList.toggle('hidden', !isPriv);
+
+      if (!isPriv) return;
+
+      const container = document.getElementById('activityChipsList');
+      container.innerHTML = '';
+
+      // "My activity" chip
+      const myChip = document.createElement('span');
+      myChip.className = 'chip-user active';
+      myChip.textContent = 'My activity';
+      myChip.dataset.username = '';
+      myChip.onclick = () => selectActivityChip(myChip, null);
+      container.appendChild(myChip);
+
+      // Chip per created user
+      for (const u of _activityCreatedUsernames) {
+        const chip = document.createElement('span');
+        chip.className = 'chip-user';
+        chip.textContent = u;
+        chip.dataset.username = u;
+        chip.onclick = () => selectActivityChip(chip, u);
+        container.appendChild(chip);
+      }
+    }
+
+    function selectActivityChip(chipEl, username) {
+      document.querySelectorAll('#activityChipsList .chip-user').forEach(c => c.classList.remove('active'));
+      chipEl.classList.add('active');
+      _activityUsername = username;
+      reloadActivity();
+    }
+
+    // ──────────────────── Login Credentials ────────────────────
+
+    let _allLoginCredentials = [];
+
+    async function loadLoginCredentials() {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return;
+
+      try {
+        const data = await api('/access-light/v1/users/me/login-credentials?origin=admin%20UI', { token });
+        _allLoginCredentials = data.items || [];
+        renderLoginCredentialCards();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function renderLoginCredentialCards() {
+      const container = document.getElementById('lcCardsList');
+      const badge = document.getElementById('lcCountBadge');
+      badge.textContent = _allLoginCredentials.length;
+      container.innerHTML = '';
+
+      if (_allLoginCredentials.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text-dim);padding:20px 0;font-size:0.84rem;">No login credentials yet. Create one from the left panel.</div>';
+        return;
+      }
+
+      const sorted = [..._allLoginCredentials].sort((a, b) => a.name.localeCompare(b.name));
+      for (const lc of sorted) {
+        container.appendChild(createLoginCredentialCard(lc));
+      }
+      filterLoginCredentialCards();
+    }
+
+    function createLoginCredentialCard(lc) {
+      const card = document.createElement('div');
+      card.className = 'wallet-card';
+      card.dataset.lcName = lc.name;
+
+      const lastLogin = lc.lastLoginAt
+        ? new Date(lc.lastLoginAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'medium' })
+        : 'Never';
+      const created = new Date(lc.createdAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+      const updated = new Date(lc.updatedAt).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' });
+
+      card.innerHTML = `
+    <div class="wallet-card-header">
+      <span class="wallet-name">${escapeHtml(lc.name)}</span>
+      <div class="wallet-actions">
+        <button class="btn btn-secondary btn-sm" onclick="toggleLcEdit('${escapeHtml(lc.name)}')">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="handleDeleteLoginCredential('${escapeHtml(lc.name)}')">Delete</button>
+      </div>
+    </div>
+    <div class="wallet-field"><span class="wf-label">Description</span><span class="wf-value">${lc.description ? escapeHtml(lc.description) : '—'}</span></div>
+    <div class="wallet-field"><span class="wf-label">Last Login</span><span class="wf-value">${escapeHtml(lastLogin)}</span></div>
+    <div class="wallet-field"><span class="wf-label">Created</span><span class="wf-value">${created}</span></div>
+    <div class="wallet-field"><span class="wf-label">Updated</span><span class="wf-value">${updated}</span></div>
+    <div class="wallet-edit-form hidden" id="lcEdit_${CSS.escape(lc.name)}">
+      <div class="separator"></div>
+      <label>Description</label>
+      <input type="text" data-field="description" value="${lc.description ? escapeHtml(lc.description) : ''}" placeholder="Description" />
+      <button class="btn btn-primary btn-sm" style="margin-top:6px;" onclick="handleUpdateLoginCredential('${escapeHtml(lc.name)}')">Save</button>
+      <button class="btn btn-secondary btn-sm" style="margin-top:6px;margin-left:4px;" onclick="handleRecreateLoginCredential('${escapeHtml(lc.name)}')">Regenerate Secret</button>
+    </div>
+  `;
+      return card;
+    }
+
+    function filterLoginCredentialCards() {
+      const query = (document.getElementById('lcSearchInput')?.value || '').toLowerCase().trim();
+      const container = document.getElementById('lcCardsList');
+      const cards = container.querySelectorAll('.wallet-card');
+      for (const card of cards) {
+        const name = (card.dataset.lcName || '').toLowerCase();
+        card.style.display = !query || name.includes(query) ? '' : 'none';
+      }
+    }
+
+    function toggleLcEdit(name) {
+      const form = document.getElementById('lcEdit_' + CSS.escape(name));
+      if (form) form.classList.toggle('hidden');
+    }
+
+    let _lcModalSecret = null;
+
+    // ──────────────────── Password Reset Modal ────────────────────
+
+    let _pwdResetValue = null;
+    let _pwdResetCopyTimer = null;
+    let _pwdResetRevealBound = false;
+
+    function maskPasswordResetValue() {
+      if (!_pwdResetValue) return;
+      const valueEl = document.getElementById('pwdResetValue');
+      valueEl.textContent = '•'.repeat(Math.min(_pwdResetValue.length, 18));
+      valueEl.classList.add('masked');
+    }
+
+    function revealPasswordResetValue() {
+      if (!_pwdResetValue) return;
+      const valueEl = document.getElementById('pwdResetValue');
+      valueEl.textContent = _pwdResetValue;
+      valueEl.classList.remove('masked');
+    }
+
+    function initPasswordResetReveal() {
+      if (_pwdResetRevealBound) return;
+      _pwdResetRevealBound = true;
+      bindPressToReveal(
+        document.getElementById('pwdResetToggleBtn'),
+        revealPasswordResetValue,
+        maskPasswordResetValue,
+      );
+    }
+
+    function openPasswordResetDialog(username, password) {
+      _pwdResetValue = password;
+      document.getElementById('pwdResetUsernameLabel').textContent = username;
+      maskPasswordResetValue();
+      const copyBtn = document.getElementById('pwdResetCopyBtn');
+      copyBtn.classList.remove('copied');
+      copyBtn.title = 'Copy password';
+      initPasswordResetReveal();
+      openModal('passwordResetModal');
+    }
+
+    function closePasswordResetDialog() {
+      closeModal('passwordResetModal');
+      document.getElementById('pwdResetValue').textContent = '';
+      _pwdResetValue = null;
+      document.getElementById('pwdResetToggleBtn').classList.remove('revealing');
+      clearTimeout(_pwdResetCopyTimer);
+    }
+
+    async function copyPasswordResetValue() {
+      if (!_pwdResetValue) return;
+      const copyBtn = document.getElementById('pwdResetCopyBtn');
+      try {
+        await navigator.clipboard.writeText(_pwdResetValue);
+        copyBtn.classList.add('copied');
+        copyBtn.title = 'Copied!';
+        showToast('Password copied to clipboard');
+        clearTimeout(_pwdResetCopyTimer);
+        _pwdResetCopyTimer = setTimeout(() => {
+          copyBtn.classList.remove('copied');
+          copyBtn.title = 'Copy password';
+        }, 2000);
+      } catch {
+        showToast('Could not copy — select and copy manually', 'error');
+      }
+    }
+
+    async function handleResetMemberPassword(username) {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+      const confirmed = await showConfirmDialog({
+        title: 'Reset password?',
+        message: `Reset password for "${username}"?`,
+        detail: "A new password will be generated. The member's current sessions will be invalidated.",
+        confirmLabel: 'Reset password',
+        danger: true,
+        warn: true,
+      });
+      if (!confirmed) return;
+      try {
+        const data = await api(`/access-light/v1/users/${encodeURIComponent(username)}/password-reset?origin=admin%20UI`, {
+          method: 'POST',
+          token,
+        });
+        showToast(`Password reset for ${username}`);
+        openPasswordResetDialog(data.username, data.password);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    function openLcSecretDialog(name, secret) {
+      _lcModalSecret = secret;
+      document.getElementById('lcSecretNameLabel').textContent = name;
+      document.getElementById('lcSecretValue').textContent = secret;
+      openModal('lcSecretModal');
+    }
+
+    function closeLcSecretDialog() {
+      closeModal('lcSecretModal');
+      document.getElementById('lcSecretValue').textContent = '';
+      _lcModalSecret = null;
+    }
+
+    function prefillLcTestFromModal() {
+      if (_lcModalSecret) {
+        document.getElementById('lcTestSecret').value = _lcModalSecret;
+      }
+      closeLcSecretDialog();
+      const credItem = document.querySelector('.sidebar-item[data-page="credentials"]');
+      if (credItem) switchPage(credItem);
+      document.getElementById('lcTestSecret').focus();
+      showToast('Secret copied to test form — run Test login');
+    }
+
+    function renderLcTestResult(ok, payload) {
+      const el = document.getElementById('lcTestResult');
+      el.classList.remove('hidden', 'success', 'failure');
+      el.classList.add(ok ? 'success' : 'failure');
+
+      if (ok) {
+        const token = payload.accessToken || '';
+        const preview = token.length > 48
+          ? `${token.slice(0, 24)}…${token.slice(-12)}`
+          : token;
+        const claims = parseJwt(token);
+        const expStr = payload.expiresIn
+          ? `${payload.expiresIn} s (${Math.round(payload.expiresIn / 86400)} days)`
+          : '—';
+        el.innerHTML = `
+      <strong class="result-success">Login succeeded — JWT issued</strong>
+      <div class="wallet-field" style="margin-top:8px;"><span class="wf-label">Token type</span><span class="wf-value">${escapeHtml(payload.tokenType || 'Bearer')}</span></div>
+      <div class="wallet-field"><span class="wf-label">Expires in</span><span class="wf-value">${escapeHtml(expStr)}</span></div>
+      <div class="wallet-field"><span class="wf-label">Issued at</span><span class="wf-value">${payload.issuedAt ? escapeHtml(payload.issuedAt) : '—'}</span></div>
+      ${claims ? `<div class="wallet-field"><span class="wf-label">JWT subject</span><span class="wf-value">${escapeHtml(claims.sub || '—')}</span></div>
+      <div class="wallet-field"><span class="wf-label">JWT username</span><span class="wf-value">${escapeHtml(claims.username || '—')}</span></div>` : ''}
+      <span class="lc-test-token" title="Full access token">${escapeHtml(preview)}</span>
+      <p style="margin-top:8px;font-size:0.75rem;color:var(--text-dim);">Your current session cookie was not replaced. Check Login Attempts for this test.</p>
+    `;
+      } else {
+        el.innerHTML = `
+      <strong class="result-failure">Login failed</strong>
+      <p style="margin-top:6px;">${escapeHtml(payload.message || 'Unknown error')}</p>
+      ${payload.code ? `<p style="margin-top:4px;font-size:0.75rem;color:var(--text-dim);">Code: ${escapeHtml(payload.code)}</p>` : ''}
+    `;
+      }
+    }
+
+    function clearLcTestResult() {
+      const el = document.getElementById('lcTestResult');
+      el.classList.add('hidden');
+      el.classList.remove('success', 'failure');
+      el.innerHTML = '';
+    }
+
+    async function handleTestLoginCredential() {
+      const username = document.getElementById('lcTestUsername').value.trim();
+      const secret = document.getElementById('lcTestSecret').value;
+
+      if (!username || !secret) {
+        return showToast('Username and credential secret are required', 'error');
+      }
+
+      setLoading('lcTestLoginBtn', true);
+      clearLcTestResult();
+      try {
+        const data = await api('/access-light/v1/auth/login?origin=admin%20UI%20lc-test', {
+          method: 'POST',
+          body: { username, password: secret },
+        });
+        renderLcTestResult(true, data);
+        showToast('Credential login succeeded — JWT received');
+        await loadLoginCredentials();
+        reloadAttempts();
+      } catch (err) {
+        renderLcTestResult(false, { message: err.message, code: err.code || '' });
+        showToast(err.message, 'error');
+      } finally {
+        setLoading('lcTestLoginBtn', false);
+      }
+    }
+
+    async function handleCreateLoginCredential() {
+      const name = document.getElementById('lcName').value.trim();
+      const description = document.getElementById('lcDescription').value.trim() || undefined;
+
+      if (!name) return showToast('Credential name is required', 'error');
+
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      setLoading('createLcBtn', true);
+      try {
+        const data = await api('/access-light/v1/users/me/login-credentials?origin=admin%20UI', {
+          method: 'POST',
+          body: { name, description },
+          token,
+        });
+
+        showToast(`Credential "${data.name}" created`);
+        openLcSecretDialog(data.name, data.secret);
+        document.getElementById('lcName').value = '';
+        document.getElementById('lcDescription').value = '';
+        await loadLoginCredentials();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setLoading('createLcBtn', false);
+      }
+    }
+
+    async function handleRecreateLoginCredential(name) {
+      const regenOk = await showConfirmDialog({
+        title: 'Regenerate secret?',
+        message: `Regenerate secret for "${name}"?`,
+        detail: 'The old secret will stop working immediately.',
+        confirmLabel: 'Regenerate',
+        danger: true,
+        warn: true,
+      });
+      if (!regenOk) return;
+
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      try {
+        const data = await api('/access-light/v1/users/me/login-credentials?origin=admin%20UI', {
+          method: 'POST',
+          body: { name },
+          token,
+        });
+        showToast(`Credential "${name}" regenerated`);
+        openLcSecretDialog(data.name, data.secret);
+        await loadLoginCredentials();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function handleUpdateLoginCredential(name) {
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      const form = document.getElementById('lcEdit_' + CSS.escape(name));
+      if (!form) return;
+
+      const descInput = form.querySelector('[data-field="description"]');
+      const description = descInput.value.trim() || null;
+
+      try {
+        await api(`/access-light/v1/users/me/login-credentials/${encodeURIComponent(name)}?origin=admin%20UI`, {
+          method: 'PATCH',
+          body: { description },
+          token,
+        });
+        showToast(`Credential "${name}" updated`);
+        await loadLoginCredentials();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    async function handleDeleteLoginCredential(name) {
+      const deleteOk = await showConfirmDialog({
+        title: 'Delete credential?',
+        message: `Delete login credential "${name}"?`,
+        detail: 'This action cannot be undone.',
+        confirmLabel: 'Delete',
+        danger: true,
+      });
+      if (!deleteOk) return;
+
+      const token = getCookie(COOKIE_NAME);
+      if (!token) return showToast('Session expired – please log in again', 'error');
+
+      try {
+        await api(`/access-light/v1/users/me/login-credentials/${encodeURIComponent(name)}?origin=admin%20UI`, {
+          method: 'DELETE',
+          token,
+        });
+        showToast(`Credential "${name}" deleted`);
+        await loadLoginCredentials();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    document.getElementById('lcName')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleCreateLoginCredential();
+    });
+    document.getElementById('lcTestSecret')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleTestLoginCredential();
+    });
+
+    // ──────────────────── Init ────────────────────
+
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('confirmModal').classList.contains('open')) closeConfirmDialog(false);
+      else if (document.getElementById('lcSecretModal').classList.contains('open')) closeLcSecretDialog();
+      else if (document.getElementById('passwordResetModal').classList.contains('open')) closePasswordResetDialog();
+    });
+
+    initPasswordRevealFields();
+
+    // On page load, check for existing JWT cookie
+    loadDashboard();
+  </script>
+</body>
+
+</html>
